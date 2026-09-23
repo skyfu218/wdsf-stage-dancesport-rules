@@ -1,0 +1,466 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="依據 WDSF Stage DanceSport 規程整理的離線規則查詢系統。">
+  <title>WDSF 舞臺運動舞蹈規則查詢</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23142b4a'/%3E%3Cpath d='M15 46c10-2 12-11 15-28 4 12 8 18 19 20-8 3-14 6-20 12-3-2-8-3-14-4Z' fill='%23f4be59'/%3E%3C/svg%3E">
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #152235;
+      --muted: #5c6b7d;
+      --navy: #142b4a;
+      --navy-2: #21466f;
+      --gold: #e2a92f;
+      --gold-soft: #fff5dc;
+      --paper: #f6f8fb;
+      --surface: #ffffff;
+      --line: #dfe5ec;
+      --rule: #17665a;
+      --rule-soft: #e7f5f1;
+      --warn: #9a5c00;
+      --warn-soft: #fff4d8;
+      --issue: #a83a44;
+      --issue-soft: #fff0f1;
+      --shadow: 0 16px 40px rgba(20, 43, 74, .09);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--paper);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+      font-size: 16px;
+      line-height: 1.65;
+    }
+
+    button, input, select { font: inherit; }
+    button, select, input { min-height: 44px; }
+    button:focus-visible, input:focus-visible, select:focus-visible {
+      outline: 3px solid rgba(226, 169, 47, .42);
+      outline-offset: 2px;
+    }
+
+    .topbar {
+      background: var(--navy);
+      color: white;
+      border-bottom: 4px solid var(--gold);
+    }
+    .topbar-inner, main, footer {
+      width: min(1180px, calc(100% - 32px));
+      margin-inline: auto;
+    }
+    .topbar-inner {
+      min-height: 84px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      padding-block: 16px;
+    }
+    .brand { display: flex; align-items: center; gap: 14px; }
+    .mark {
+      width: 46px; height: 46px; flex: 0 0 auto;
+      display: grid; place-items: center;
+      border: 1px solid rgba(255,255,255,.28);
+      border-radius: 13px;
+      color: var(--gold);
+      font-weight: 800;
+      letter-spacing: .04em;
+    }
+    h1 { margin: 0; font-size: clamp(1.2rem, 2.5vw, 1.7rem); line-height: 1.25; font-weight: 700; }
+    .subtitle { margin: 3px 0 0; color: #cfd9e6; font-size: .9rem; }
+    .source-chip {
+      color: #e5ebf2;
+      border: 1px solid rgba(255,255,255,.2);
+      border-radius: 999px;
+      padding: 6px 11px;
+      white-space: nowrap;
+      font-size: .82rem;
+    }
+
+    main { padding-block: 28px 56px; }
+    .intro {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 22px;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .intro h2 { margin: 0 0 4px; font-size: 1.28rem; }
+    .intro p { margin: 0; color: var(--muted); }
+    .legend { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+    .legend span, .tag {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 3px 9px;
+      font-size: .78rem;
+      font-weight: 650;
+      line-height: 1.5;
+    }
+    .legend-rule, .tag-rule { color: var(--rule); background: var(--rule-soft); }
+    .legend-note, .tag-note { color: var(--warn); background: var(--warn-soft); }
+    .legend-issue, .tag-issue { color: var(--issue); background: var(--issue-soft); }
+
+    .query-panel {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .filters {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(150px, 1fr));
+      gap: 14px;
+    }
+    .field label { display: block; font-size: .86rem; font-weight: 700; margin-bottom: 5px; }
+    .field select, .field input {
+      width: 100%;
+      color: var(--ink);
+      background: #fff;
+      border: 1px solid #bcc7d3;
+      border-radius: 10px;
+      padding: 9px 11px;
+    }
+    .search-row { display: grid; grid-template-columns: 1fr auto; gap: 12px; margin-top: 14px; }
+    .search-wrap { position: relative; }
+    .search-wrap input { padding-left: 42px; }
+    .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--muted); }
+    .reset {
+      border: 1px solid var(--navy-2);
+      color: var(--navy);
+      background: transparent;
+      border-radius: 10px;
+      padding: 8px 18px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+    .reset:hover { background: #edf3f9; }
+
+    .summary-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 18px 2px 12px;
+    }
+    .count { font-weight: 750; }
+    .active-filters { color: var(--muted); font-size: .88rem; text-align: right; }
+
+    .results { display: grid; gap: 12px; }
+    .result-card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-left: 5px solid var(--rule);
+      border-radius: 13px;
+      padding: 17px 18px;
+    }
+    .result-card.note { border-left-color: var(--warn); }
+    .result-card.issue { border-left-color: var(--issue); }
+    .card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+    .result-card h3 { margin: 0; font-size: 1.04rem; line-height: 1.45; }
+    .ref { color: var(--navy-2); font-size: .82rem; font-weight: 700; white-space: nowrap; }
+    .result-card p { margin: 8px 0 0; }
+    .meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+    .meta span { color: var(--muted); background: #f0f3f7; border-radius: 6px; padding: 2px 7px; font-size: .76rem; }
+
+    .empty {
+      display: none;
+      text-align: center;
+      background: var(--surface);
+      border: 1px dashed #aeb9c6;
+      border-radius: 13px;
+      padding: 38px 20px;
+      color: var(--muted);
+    }
+
+    details {
+      margin-top: 22px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      padding: 14px 17px;
+    }
+    summary { cursor: pointer; font-weight: 750; color: var(--navy); }
+    .scope-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px 28px; margin-top: 13px; }
+    .scope-grid p { margin: 0; color: var(--muted); }
+    .scope-grid strong { color: var(--ink); }
+
+    footer {
+      color: var(--muted);
+      border-top: 1px solid var(--line);
+      padding-block: 22px 36px;
+      font-size: .86rem;
+    }
+    footer p { margin: 4px 0; }
+
+    @media (max-width: 850px) {
+      .filters { grid-template-columns: repeat(2, 1fr); }
+      .intro { grid-template-columns: 1fr; }
+      .legend { justify-content: flex-start; }
+      .source-chip { display: none; }
+    }
+    @media (max-width: 540px) {
+      .topbar-inner, main, footer { width: min(100% - 22px, 1180px); }
+      .topbar-inner { min-height: 74px; }
+      .filters, .scope-grid { grid-template-columns: 1fr; }
+      .search-row { grid-template-columns: 1fr; }
+      .summary-bar, .card-head { align-items: flex-start; flex-direction: column; }
+      .active-filters { text-align: left; }
+      .query-panel { padding: 15px; border-radius: 14px; }
+      .result-card { padding: 15px; }
+    }
+    @media print {
+      body { background: white; }
+      .topbar { color: #000; background: white; border-bottom: 2px solid #000; }
+      .subtitle, .source-chip { color: #333; }
+      .query-panel, .legend, .reset { display: none !important; }
+      main { width: 100%; padding: 18px 0; }
+      .result-card { box-shadow: none; break-inside: avoid; }
+      footer { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="mark" aria-hidden="true">SD</div>
+        <div>
+          <h1>WDSF 舞臺運動舞蹈規則查詢</h1>
+          <p class="subtitle">Stage DanceSport｜手冊條文摘要與執行提醒</p>
+        </div>
+      </div>
+      <div class="source-chip">依據30頁規程整理</div>
+    </div>
+  </header>
+
+  <main>
+    <section class="intro" aria-labelledby="query-title">
+      <div>
+        <h2 id="query-title">選擇條件，查詢適用規則</h2>
+        <p>可單獨使用一個條件，也可交叉篩選；結果不取代WDSF正式英文規則。</p>
+      </div>
+      <div class="legend" aria-label="資料類型">
+        <span class="legend-rule">手冊規定</span>
+        <span class="legend-note">臺灣執行提醒</span>
+        <span class="legend-issue">原文待確認</span>
+      </div>
+    </section>
+
+    <section class="query-panel" aria-label="規則篩選器">
+      <div class="filters">
+        <div class="field">
+          <label for="discipline">舞種</label>
+          <select id="discipline">
+            <option value="all">全部舞種</option>
+            <option value="jazz">爵士舞 Jazz Dance</option>
+            <option value="contemporary">當代舞 Contemporary Dance</option>
+            <option value="showdance">舞臺展演舞 ShowDance Stage</option>
+            <option value="tap">踢踏舞 Tap Dance</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="form">競賽形式</label>
+          <select id="form">
+            <option value="all">全部形式</option>
+            <option value="solo">單人 Solo</option>
+            <option value="duo">雙人 Duo</option>
+            <option value="trio">三人 Trio</option>
+            <option value="small">小團體 3–7人</option>
+            <option value="large">大團體 8–24人</option>
+            <option value="mega">超大型團體 25人以上</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="age">年齡組</label>
+          <select id="age">
+            <option value="all">全部年齡</option>
+            <option value="juvenile1">Juvenile I</option>
+            <option value="juvenile2">Juvenile II</option>
+            <option value="junior1">Junior I</option>
+            <option value="junior2">Junior II</option>
+            <option value="youth">Youth</option>
+            <option value="adult">Adult</option>
+            <option value="senior">Senior</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="topic">規則主題</label>
+          <select id="topic">
+            <option value="all">全部主題</option>
+            <option value="eligibility">資格與組別</option>
+            <option value="music">音樂與時間</option>
+            <option value="costume">服裝、鞋具、化妝</option>
+            <option value="venue">場地與燈光</option>
+            <option value="props">道具、布景、對嘴</option>
+            <option value="acrobatics">技巧與托舉</option>
+            <option value="judging">評分與裁判</option>
+            <option value="operations">賽程與行政</option>
+            <option value="safety">安全與選手照護</option>
+          </select>
+        </div>
+      </div>
+      <div class="search-row">
+        <div class="field search-wrap">
+          <label class="sr-only" for="keyword" style="position:absolute;left:-9999px">關鍵字</label>
+          <span class="search-icon" aria-hidden="true">⌕</span>
+          <input id="keyword" type="search" placeholder="搜尋：例如 音樂、托舉、道具、裁判、世界賽">
+        </div>
+        <button class="reset" id="reset" type="button">重設條件</button>
+      </div>
+    </section>
+
+    <div class="summary-bar">
+      <div class="count" id="count" aria-live="polite"></div>
+      <div class="active-filters" id="activeFilters"></div>
+    </div>
+
+    <section class="results" id="results" aria-label="查詢結果" aria-live="polite"></section>
+    <div class="empty" id="empty" role="status">
+      找不到符合條件的規則。請減少篩選條件，或改用其他關鍵字。
+    </div>
+
+    <details>
+      <summary>資料範圍與使用限制</summary>
+      <div class="scope-grid">
+        <p><strong>上位分類：</strong>Stage DanceSport（舞臺運動舞蹈）。</p>
+        <p><strong>包含舞種：</strong>爵士舞、當代舞、舞臺展演舞及踢踏舞。</p>
+        <p><strong>來源：</strong>WDSF Presidium Operating Policy on Rules for the Stage DanceSport Discipline，30頁。</p>
+        <p><strong>限制：</strong>這是中文摘要查詢工具；報名、執法及申訴仍應核對當年度正式英文規則與賽事公告。</p>
+      </div>
+    </details>
+  </main>
+
+  <footer>
+    <p><strong>資料版本：</strong>依使用者提供之PDF整理｜系統整理日期：2026-09-23</p>
+    <p>「臺灣執行提醒」及「原文待確認」屬分析註記，不是WDSF正式條文。</p>
+  </footer>
+
+  <script>
+    const ALL = ["all"];
+    const D = ["jazz", "contemporary", "showdance", "tap"];
+    const F = ["solo", "duo", "trio", "small", "large", "mega"];
+    const A = ["juvenile1", "juvenile2", "junior1", "junior2", "youth", "adult", "senior"];
+    const entries = [
+      {type:"rule", ref:"L.2", title:"舞臺運動舞蹈的四個舞種", text:"Stage DanceSport 是上位分類，包含爵士舞、當代舞、舞臺展演舞及踢踏舞。", disciplines:D, forms:F, ages:A, topics:["eligibility"]},
+      {type:"rule", ref:"L.2.1", title:"爵士舞的技術特徵", text:"以分離動作、身體收縮與爵士伸展為辨識特徵；常見元素包括轉、踢、跳、爵士走步、地板動作及 pas de bourrée。爵士技術必須在作品中占主導地位。", disciplines:["jazz"], forms:F, ages:A, topics:["eligibility","judging"]},
+      {type:"rule", ref:"L.2.2", title:"當代舞的技術特徵", text:"強調動作品質、收縮與釋放、節奏與方向變化、地板動作、墜落與恢復、平衡、控制及延伸；主題須符合選手年齡與能力。", disciplines:["contemporary"], forms:F, ages:A, topics:["eligibility","judging"]},
+      {type:"rule", ref:"L.2.3", title:"舞臺展演舞的核心", text:"以爵士舞及當代舞技術為基礎，透過動作、編舞、服裝與表情呈現動機、情緒、故事、概念或主題；可加入其他舞蹈元素，但爵士與當代舞特徵仍須清楚可辨。", disciplines:["showdance"], forms:F, ages:A, topics:["eligibility","judging"]},
+      {type:"rule", ref:"L.2.4", title:"踢踏舞的核心", text:"以鞋底金屬片敲擊地面產生節奏聲響，可包含 rhythm、hoofing、buck and wing、waltz clog、military、precision kick line、Latin 及 musical theatre 等風格。", disciplines:["tap"], forms:F, ages:A, topics:["eligibility","judging"]},
+      {type:"rule", ref:"L.4", title:"可參加的競賽形式", text:"爵士舞、當代舞及舞臺展演舞可參加單人、雙人、小團體、大團體與超大型團體；三人組僅列於踢踏舞。踢踏舞可參加全部六種形式。", disciplines:D, forms:F, ages:A, topics:["eligibility"]},
+      {type:"issue", ref:"L.4–L.5", title:"三人組適用範圍不一致", text:"L.4表格只允許踢踏舞設三人組，但L.5以「所有舞臺運動舞蹈項目」描述三人組年齡。正式賽事應明載三人組是否僅限踢踏舞。", disciplines:D, forms:["trio"], ages:A, topics:["eligibility"]},
+      {type:"rule", ref:"L.4", title:"男子單人不足三人的處理", text:"同一年齡組男子單人至少須有三名選手；只有一至二名男子時，原規則要求男子與女子合併競賽。", disciplines:D, forms:["solo"], ages:A, topics:["eligibility","operations"]},
+      {type:"rule", ref:"L.5", title:"單人、雙人、三人年齡", text:"Juvenile I：9歲以下；Juvenile II：10–11歲；Junior I：12–13歲；Junior II：14–15歲；Youth：16–18歲；Adult：19歲以上；Senior：30歲以上。雙人及三人以年長者決定組別。", disciplines:D, forms:["solo","duo","trio"], ages:A, topics:["eligibility"]},
+      {type:"rule", ref:"L.6", title:"團體年齡", text:"團體組：Juvenile 8–11歲、Junior 12–15歲、Adult 16–29歲、Senior 30歲以上。團體Adult與個人Adult的起始年齡不同。", disciplines:D, forms:["small","large","mega"], ages:A, topics:["eligibility"]},
+      {type:"rule", ref:"L.5.5–L.6.2", title:"升齡參賽", text:"WDSF公開賽原則上可升一個年齡組參賽；Senior可參加Adult。洲際及世界錦標賽另有較嚴格限制。", disciplines:D, forms:F, ages:A, topics:["eligibility"]},
+      {type:"rule", ref:"L.5.7、L.6.2", title:"洲際及世界錦標賽的低齡限制", text:"Juvenile I及Juvenile II不得參加洲際或世界錦標賽的單人、雙人、三人或團體項目。", disciplines:D, forms:F, ages:["juvenile1","juvenile2"], topics:["eligibility"]},
+      {type:"issue", ref:"L.6.6、L.20.1.1", title:"超大型團體年齡規定矛盾", text:"一處稱公開賽Mega Team沒有年齡限制，但又排除低齡選手參加錦標賽；特殊規則再稱Mega Team不受年齡限制。使用前應依賽事層級確認。", disciplines:["showdance"], forms:["mega"], ages:A, topics:["eligibility"]},
+      {type:"rule", ref:"L.7", title:"競賽輪次", text:"8組以下直接決賽；9–16組為準決賽及決賽；17–32組為四分之一決賽、準決賽及決賽；33組以上增加第一輪。裁判長保有調整權。", disciplines:D, forms:F, ages:A, topics:["operations"]},
+      {type:"note", ref:"L.7", title:"臺灣規程應補充晉級人數", text:"原文沒有完整規定各輪晉級比例、決賽組數及不足額處理。國內賽事公告應在報名前公布。", disciplines:D, forms:F, ages:A, topics:["operations"]},
+      {type:"rule", ref:"L.8.3", title:"單人、雙人、三人音樂長度", text:"音樂長度為1分30秒至2分鐘。超過上限時，DJ應在時間到達後切斷音樂。", disciplines:D, forms:["solo","duo","trio"], ages:A, topics:["music"]},
+      {type:"rule", ref:"L.8.3", title:"小團體音樂長度", text:"小團體音樂長度為2至3分鐘。", disciplines:D, forms:["small"], ages:A, topics:["music"]},
+      {type:"rule", ref:"L.8.3", title:"大團體音樂長度", text:"大團體音樂長度為2至3分30秒。", disciplines:D, forms:["large"], ages:A, topics:["music"]},
+      {type:"rule", ref:"L.8.3", title:"超大型團體音樂長度", text:"超大型團體音樂長度為4至6分鐘。", disciplines:D, forms:["mega"], ages:A, topics:["music"]},
+      {type:"rule", ref:"L.8.7–L.8.13", title:"音樂提交與備份", text:"音樂須至少在賽前兩週以高品質MP3、AIFF或WAV提交；同一競賽不得更換。領隊須攜帶USB備份。禁止現場音樂及不適齡或含明確不雅內容的歌詞。", disciplines:D, forms:F, ages:A, topics:["music","operations"]},
+      {type:"rule", ref:"L.8.10", title:"踢踏舞的無音樂段落", text:"混音中最多可有30秒無音樂段落，但不得安排在音樂開頭或結尾。", disciplines:["tap"], forms:F, ages:A, topics:["music"]},
+      {type:"rule", ref:"L.8.13", title:"音樂中斷與重演", text:"若音樂因合理原因中斷，選手有權重演；是否重演由裁判長決定。", disciplines:D, forms:F, ages:A, topics:["music","operations"]},
+      {type:"rule", ref:"L.9.1", title:"服裝基本規定", text:"服裝須配合主題且符合年齡；私密部位須以實質布料覆蓋，不能只使用網紗。男選手僅在Adult及Senior可赤裸上身。禁止個人珠寶。", disciplines:D, forms:F, ages:A, topics:["costume","safety"]},
+      {type:"rule", ref:"L.9.1.4", title:"宗教與政治符號", text:"原則上禁止宗教或政治符號。舞臺展演舞若符號與編舞的歷史背景或主題有關且不具冒犯性，可作例外。", disciplines:["showdance"], forms:F, ages:A, topics:["costume"]},
+      {type:"rule", ref:"L.9.3", title:"未成年組化妝", text:"Juvenile I、Juvenile II及Junior I不得使用一般化妝；可使用符合年齡的角色化妝。", disciplines:D, forms:F, ages:["juvenile1","juvenile2","junior1"], topics:["costume"]},
+      {type:"issue", ref:"L.9.2.1–L.9.2.2", title:"舞臺展演舞鞋具條文矛盾", text:"相鄰條文一處似乎允許使用表列外鞋具，另一處又禁止表列外鞋具。建議賽前以書面向主辦或WDSF確認，不宜自行推定。", disciplines:["showdance"], forms:F, ages:A, topics:["costume","safety"]},
+      {type:"rule", ref:"L.10.1", title:"單人至小團體的最小場地", text:"單人、雙人、三人及小團體的舞池最小尺寸為深10公尺、寬14公尺。", disciplines:D, forms:["solo","duo","trio","small"], ages:A, topics:["venue"]},
+      {type:"rule", ref:"L.10.1", title:"大團體與超大型團體的最小場地", text:"大團體及超大型團體的舞池最小尺寸為深12公尺、寬18公尺。", disciplines:D, forms:["large","mega"], ages:A, topics:["venue"]},
+      {type:"rule", ref:"L.10.1.1–L.10.1.2", title:"地板要求", text:"一般項目應使用高品質舞蹈地膠或適當運動地板，不得使用滑面。踢踏舞須使用適合發聲的楓木、橡木或相當的木質面板。", disciplines:D, forms:F, ages:A, topics:["venue","safety"]},
+      {type:"rule", ref:"L.10.2", title:"燈光要求", text:"燈光須完整覆蓋舞池，基本技術參數不得更改；正面光至少90%為白光，可另加燈光效果強化場景。", disciplines:D, forms:F, ages:A, topics:["venue"]},
+      {type:"rule", ref:"L.11.1", title:"禁止的道具與效果", text:"禁止火焰、火焰效果、動物，以及水、油漆等可能破壞或弄髒地板的物質。電氣設備僅限電池供電。表演後地板須保持清潔且狀況不變。", disciplines:D, forms:F, ages:A, topics:["props","safety"]},
+      {type:"rule", ref:"L.11.3", title:"舞臺展演舞可用布景、道具及對嘴", text:"舞臺展演舞可使用布景、道具與lip sync。這三項都應服務作品的主題與整體展演。", disciplines:["showdance"], forms:F, ages:A, topics:["props"]},
+      {type:"rule", ref:"L.11.4", title:"道具與布景進退場時間", text:"單人、雙人、三人各20秒；小團體與大團體各30秒；超大型團體各5分鐘。進場與退場分別計時。", disciplines:D, forms:F, ages:A, topics:["props","operations"]},
+      {type:"note", ref:"L.11", title:"臺灣賽事應先審查大型道具", text:"建議報名時申報尺寸、重量、材質、電池、尖銳邊角及舞臺配置；規定超時、污染地板或安全疑慮的處理方式。", disciplines:D, forms:F, ages:A, topics:["props","safety"]},
+      {type:"rule", ref:"L.12", title:"爵士舞的技巧限制", text:"禁止身體在空中繞軸自由翻轉的技巧，但允許至少一個身體部位接觸地面的有限技巧。禁止連續技巧形成橫跨舞臺的體操斜線。", disciplines:["jazz"], forms:F, ages:A, topics:["acrobatics","safety"]},
+      {type:"rule", ref:"L.12、L.20", title:"舞臺展演舞的技巧動作", text:"允許空中及貼地技巧，但技巧須自然融入編舞。技巧不直接提高最終分數；執行不佳可能降低技術評價。禁止體操斜線。", disciplines:["showdance"], forms:F, ages:A, topics:["acrobatics","judging","safety"]},
+      {type:"rule", ref:"L.12", title:"當代舞與踢踏舞的技巧動作", text:"允許空中與貼地技巧，但不得使用連續技巧形成橫跨舞臺的體操斜線；技巧應符合舞種特性並安全執行。", disciplines:["contemporary","tap"], forms:F, ages:A, topics:["acrobatics","safety"]},
+      {type:"rule", ref:"L.13", title:"托舉的定義與年齡限制", text:"在他人協助下，一名選手雙腳同時離地即屬托舉。Preschool及Juvenile I禁止托舉，其他年齡組原則上允許。", disciplines:D, forms:["duo","trio","small","large","mega"], ages:A, topics:["acrobatics","safety"]},
+      {type:"issue", ref:"L.13.2", title:"Preschool組未被正式定義", text:"托舉及助手條文提到Preschool，但年齡表沒有這一組。若國內賽事設幼兒組，必須另訂年齡與安全規則。", disciplines:D, forms:F, ages:A, topics:["eligibility","safety"]},
+      {type:"rule", ref:"L.14", title:"團體選手替換", text:"受傷或不可預見情況下，團體最多可替換兩名選手，且須先通知裁判長。單人、雙人及三人不得替換。", disciplines:D, forms:F, ages:A, topics:["operations","safety"]},
+      {type:"rule", ref:"L.15", title:"彩排安排", text:"單人、雙人與三人可在裁判長宣布的暖身時段上臺；小團體與大團體賽前安排每隊1分鐘、無音樂彩排。規則另要求提供10至15分鐘非公開完整場地測試。", disciplines:D, forms:F, ages:A, topics:["operations","venue"]},
+      {type:"issue", ref:"L.15.2–L.15.4", title:"兩種彩排時段的適用關係不清", text:"原文同時規定1分鐘無音樂彩排及10至15分鐘非公開完整彩排，但沒有清楚說明兩者適用對象與安排方式，主辦單位應事前公告。", disciplines:D, forms:["small","large","mega"], ages:A, topics:["operations"]},
+      {type:"rule", ref:"L.16.1–L.16.4", title:"裁判人數與資格", text:"世界及洲際錦標賽至少7名裁判且來自不同國家；WDSF公開賽至少5名裁判，同一國家不超過2名。裁判須持有效Stage DanceSport資格，各輪裁判團原則上維持不變。", disciplines:D, forms:F, ages:A, topics:["judging"]},
+      {type:"rule", ref:"L.16.5", title:"爵士、當代及踢踏的評分", text:"總分30分：技術10分、編舞與音樂／構成10分、演出表現10分。", disciplines:["jazz","contemporary","tap"], forms:F, ages:A, topics:["judging"]},
+      {type:"rule", ref:"L.16.5", title:"舞臺展演舞的評分", text:"總分40分：技術10分、編舞與音樂／構成10分、演出表現10分、展演效果Show 10分。", disciplines:["showdance"], forms:F, ages:A, topics:["judging"]},
+      {type:"issue", ref:"L.16.6–L.16.8", title:"計分制與同分順序需要補充", text:"規程允許AJS或Skating System，但未完整說明選用時機；同分條文也未明列各構面的比較優先順序。正式競賽須在賽前公布。", disciplines:D, forms:F, ages:A, topics:["judging","operations"]},
+      {type:"rule", ref:"L.21", title:"踢踏舞的特殊限制", text:"禁止jingle taps、double taps或double claques；不得使用錄製的踢踏聲，也不得在腿部加裝個人麥克風。主辦單位須確保踢踏聲與音樂對選手、觀眾及裁判都清楚可聞。", disciplines:["tap"], forms:F, ages:A, topics:["music","venue","judging"]},
+      {type:"rule", ref:"L.22", title:"競賽號碼呈現", text:"選手不得將競賽號碼配戴在比賽服裝上；主辦單位應透過主持人口頭宣布或主螢幕顯示。", disciplines:D, forms:F, ages:A, topics:["operations"]},
+      {type:"rule", ref:"L.23.1", title:"輪次間休息", text:"各輪之間至少休息20分鐘；世界及洲際錦標賽的準決賽與決賽之間至少休息30分鐘。", disciplines:D, forms:F, ages:A, topics:["operations","safety"]},
+      {type:"rule", ref:"L.23.2", title:"青少年決賽結束時間", text:"Juvenile所有決賽與頒獎須在20:00前完成；Junior I在21:00前；Junior II在22:00前。", disciplines:D, forms:F, ages:["juvenile1","juvenile2","junior1","junior2"], topics:["operations","safety"]},
+      {type:"note", ref:"整體規程", title:"正式採用前確認最新版本", text:"本工具依使用者提供的30頁PDF整理。辦理報名、執法、申訴或國家代表隊選拔前，應核對當年度WDSF正式英文規則及賽事公告。", disciplines:D, forms:F, ages:A, topics:["operations"]}
+    ];
+
+    const labels = {
+      discipline: {all:"全部舞種", jazz:"爵士舞", contemporary:"當代舞", showdance:"舞臺展演舞", tap:"踢踏舞"},
+      form: {all:"全部形式", solo:"單人", duo:"雙人", trio:"三人", small:"小團體", large:"大團體", mega:"超大型團體"},
+      age: {all:"全部年齡", juvenile1:"Juvenile I", juvenile2:"Juvenile II", junior1:"Junior I", junior2:"Junior II", youth:"Youth", adult:"Adult", senior:"Senior"},
+      topic: {all:"全部主題", eligibility:"資格與組別", music:"音樂與時間", costume:"服裝、鞋具、化妝", venue:"場地與燈光", props:"道具、布景、對嘴", acrobatics:"技巧與托舉", judging:"評分與裁判", operations:"賽程與行政", safety:"安全與選手照護"}
+    };
+    const typeLabel = {rule:"手冊規定", note:"臺灣執行提醒", issue:"原文待確認"};
+    const controls = ["discipline","form","age","topic","keyword"].map(id => document.getElementById(id));
+    const results = document.getElementById("results");
+    const empty = document.getElementById("empty");
+    const count = document.getElementById("count");
+    const activeFilters = document.getElementById("activeFilters");
+
+    function matchValue(selected, values) { return selected === "all" || values.includes(selected); }
+    function escapeHtml(value) {
+      return value.replace(/[&<>'"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c]));
+    }
+    function render() {
+      const [discipline, form, age, topic] = controls.slice(0,4).map(c => c.value);
+      const keyword = controls[4].value.trim().toLocaleLowerCase("zh-Hant-TW");
+      const filtered = entries.filter(e => {
+        const haystack = `${e.ref} ${e.title} ${e.text}`.toLocaleLowerCase("zh-Hant-TW");
+        return matchValue(discipline, e.disciplines)
+          && matchValue(form, e.forms)
+          && matchValue(age, e.ages)
+          && matchValue(topic, e.topics)
+          && (!keyword || haystack.includes(keyword));
+      });
+      results.innerHTML = filtered.map(e => `
+        <article class="result-card ${e.type}">
+          <div class="card-head">
+            <div><span class="tag tag-${e.type}">${typeLabel[e.type]}</span><h3>${escapeHtml(e.title)}</h3></div>
+            <span class="ref">Rule ${escapeHtml(e.ref)}</span>
+          </div>
+          <p>${escapeHtml(e.text)}</p>
+          <div class="meta">
+            ${e.topics.map(t => `<span>${labels.topic[t]}</span>`).join("")}
+          </div>
+        </article>`).join("");
+      count.textContent = `找到 ${filtered.length} 筆規則`;
+      empty.style.display = filtered.length ? "none" : "block";
+      const active = [
+        discipline !== "all" ? labels.discipline[discipline] : "",
+        form !== "all" ? labels.form[form] : "",
+        age !== "all" ? labels.age[age] : "",
+        topic !== "all" ? labels.topic[topic] : "",
+        keyword ? `關鍵字「${keyword}」` : ""
+      ].filter(Boolean);
+      activeFilters.textContent = active.length ? `目前條件：${active.join(" × ")}` : "顯示全部資料";
+    }
+    controls.forEach(control => control.addEventListener(control.tagName === "INPUT" ? "input" : "change", render));
+    document.getElementById("reset").addEventListener("click", () => {
+      controls.slice(0,4).forEach(c => c.value = "all");
+      controls[4].value = "";
+      render();
+      controls[0].focus();
+    });
+    render();
+  </script>
+</body>
+</html>
