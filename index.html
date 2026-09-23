@@ -154,6 +154,7 @@
     .count { font-weight: 750; }
     .active-filters { color: var(--muted); font-size: .88rem; text-align: right; }
 
+    .compare-layout { display: grid; grid-template-columns: minmax(0, .92fr) minmax(390px, 1.08fr); gap: 18px; align-items: start; }
     .results { display: grid; gap: 12px; }
     .result-card {
       background: var(--surface);
@@ -164,12 +165,23 @@
     }
     .result-card.note { border-left-color: var(--warn); }
     .result-card.issue { border-left-color: var(--issue); }
+    .result-card.selected { border-color: var(--navy-2); box-shadow: 0 0 0 2px rgba(36,87,126,.12); }
     .card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
     .result-card h3 { margin: 0; font-size: 1.04rem; line-height: 1.45; }
     .ref { color: var(--navy-2); font-size: .82rem; font-weight: 700; white-space: nowrap; }
     .result-card p { margin: 8px 0 0; }
     .meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
     .meta span { color: var(--muted); background: #f0f3f7; border-radius: 6px; padding: 2px 7px; font-size: .76rem; }
+    .view-source { margin-top: 13px; border: 1px solid #9bb1c3; background: #f7fafc; color: var(--navy); border-radius: 8px; padding: 7px 11px; cursor: pointer; font-weight: 750; }
+    .view-source:hover, .view-source:focus-visible { background: #e9f1f7; border-color: var(--navy-2); }
+    .source-viewer { position: sticky; top: 18px; max-height: calc(100vh - 36px); overflow: auto; background: #0e2436; color: #f6f9fb; border-radius: 15px; padding: 20px; box-shadow: 0 12px 28px rgba(10,32,49,.14); }
+    .source-viewer h2 { margin: 8px 0 4px; font-size: 1.18rem; line-height: 1.45; }
+    .source-viewer .source-meta { color: #b9c9d6; font-size: .84rem; }
+    .source-viewer h3 { margin: 20px 0 8px; font-size: .88rem; letter-spacing: .04em; color: #9fd2f0; }
+    .source-viewer blockquote { margin: 0; padding: 15px 16px; border-left: 4px solid #58b5e8; background: rgba(255,255,255,.075); border-radius: 7px; font-family: Georgia, serif; font-size: .96rem; line-height: 1.7; }
+    .source-viewer .zh-compare { margin: 0; padding: 14px 16px; background: #fff; color: var(--ink); border-radius: 7px; line-height: 1.7; }
+    .source-viewer .interpretation { margin: 0; color: #d4e1ea; line-height: 1.65; }
+    .source-viewer .source-foot { margin: 18px 0 0; padding-top: 13px; border-top: 1px solid rgba(255,255,255,.18); color: #aebfcb; font-size: .78rem; }
 
     .empty {
       display: none;
@@ -202,6 +214,8 @@
     footer p { margin: 4px 0; }
 
     @media (max-width: 850px) {
+      .compare-layout { grid-template-columns: 1fr; }
+      .source-viewer { position: static; max-height: none; order: -1; }
       .filters { grid-template-columns: repeat(2, 1fr); }
       .intro { grid-template-columns: 1fr; }
       .legend { justify-content: flex-start; }
@@ -216,6 +230,7 @@
       .active-filters { text-align: left; }
       .query-panel { padding: 15px; border-radius: 14px; }
       .result-card { padding: 15px; }
+      .source-viewer { padding: 17px; }
     }
     @media print {
       body { background: white; }
@@ -323,7 +338,10 @@
       <div class="active-filters" id="activeFilters"></div>
     </div>
 
-    <section class="results" id="results" aria-label="查詢結果" aria-live="polite"></section>
+    <div class="compare-layout">
+      <section class="results" id="results" aria-label="查詢結果" aria-live="polite"></section>
+      <aside class="source-viewer" id="sourceViewer" aria-live="polite" aria-label="英文原文對照"></aside>
+    </div>
     <div class="empty" id="empty" role="status">
       找不到符合條件的規則。請減少篩選條件，或改用其他關鍵字。
     </div>
@@ -403,6 +421,52 @@
       {type:"note", ref:"整體規程", title:"正式採用前確認最新版本", text:"本工具依使用者提供的30頁PDF整理。辦理報名、執法、申訴或國家代表隊選拔前，應核對當年度WDSF正式英文規則及賽事公告。", disciplines:D, forms:F, ages:A, topics:["operations"]}
     ];
 
+    const sourceByRef = {
+      "L.2": {page:"4", quote:"The general rules in this chapter shall apply to the following Stage DanceSport disciplines: Jazz Dance, Contemporary Dance, ShowDance Stage, Tap Dance."},
+      "L.2.1": {page:"4", quote:"Jazz Dance discipline is recognisable by its specific isolations, body contractions and jazz stretches, and characteristic technique elements. Jazz technique shall be predominant throughout the routine."},
+      "L.2.2": {page:"4–5", quote:"Contemporary dance is a free style dance where the athlete explores movement quality to create original steps ... The theme and choreography must be age appropriate and suitable for the skill level of the athletes."},
+      "L.2.3": {page:"5", quote:"ShowDance Stage discipline incorporates technical elements from Stage DanceSport, specifically Jazz and Contemporary ... the athlete emphasises storytelling through movement, choreography, costume, and expression."},
+      "L.2.4": {page:"5", quote:"Tap Dance is a form of dance characterised by using the sounds of tap shoes striking the floor as a form of percussion."},
+      "L.4": {page:"6", quote:"All Stage DanceSport disciplines shall be performed only in the Stage DanceSport form as shown in the following table. [Table: Jazz, Contemporary and ShowDance Stage exclude Trio; Tap Dance includes Solo, Duo, Trio, Small Team, Big Team and Mega Team.]"},
+      "L.4–L.5": {page:"6–8", quote:"The table in Rule L.4 marks Trio only for Tap Dance. Rule L.5 nevertheless defines age categories for Solo, Duo and Trio across Stage DanceSport."},
+      "L.5": {page:"6–8", quote:"Age groups for Solo, Duo and Trio: Juvenile I under 9; Juvenile II 10–11; Junior I 12–13; Junior II 14–15; Youth 16–18; Adult 19 and over; Senior 30 and over. The age of the oldest athlete determines the age group for Duo and Trio."},
+      "L.6": {page:"8–9", quote:"Age groups for Teams: Juvenile 8–11; Junior 12–15; Adult 16–29; Senior 30 and over."},
+      "L.5.5–L.6.2": {page:"7–9", quote:"At WDSF Open competitions athletes may generally compete one age group higher. Senior athletes may compete in Adult. Additional restrictions apply at Continental and World Championships."},
+      "L.5.7、L.6.2": {page:"8–9", quote:"Juvenile I and Juvenile II athletes are not allowed to compete at Continental Championships or World Championships."},
+      "L.6.6、L.20.1.1": {page:"9, 25", quote:"Rule L.6.6 states that no age restriction applies to Mega Teams at WDSF Open competitions, while championship limitations remain. Rule L.20.1.1 states that there is no age restriction for Mega Teams."},
+      "L.7": {page:"9–10", quote:"Up to 8 entries: Final; 9–16: Semi-final and Final; 17–32: Quarter-final, Semi-final and Final; 33 or more: First round, Quarter-final, Semi-final and Final. The Chairperson may modify the number of rounds."},
+      "L.8.3": {page:"10", quote:"Duration: Solo, Duo and Trio 1:30–2:00 minutes; Small Team 2:00–3:00; Big Team 2:00–3:30; Mega Team 4:00–6:00. Music shall be stopped when the maximum duration is reached."},
+      "L.8.7–L.8.13": {page:"10–11", quote:"Music shall be submitted at least two weeks before the competition in high quality MP3, AIFF or WAV format. The team captain shall carry a USB backup. Live music and explicit or age-inappropriate lyrics are not permitted."},
+      "L.8.10": {page:"11", quote:"Tap Dance music may contain a maximum of thirty (30) seconds without music. The silent section may not be at the beginning or at the end."},
+      "L.8.13": {page:"11", quote:"If the music stops for a reasonable cause, the athlete has the right to repeat the performance. The Chairperson decides whether a repeat is granted."},
+      "L.9.1": {page:"11–12", quote:"Costumes shall be relevant to the theme and age appropriate. Intimate areas must be covered with non-transparent material. Male athletes may perform bare-chested only in Adult and Senior. Personal jewellery is not allowed."},
+      "L.9.1.4": {page:"12", quote:"Religious and political symbols are generally prohibited. In ShowDance Stage an exception may apply when a symbol is relevant to the historical background or theme and is not offensive."},
+      "L.9.3": {page:"13", quote:"Make-up is not allowed for Juvenile I, Juvenile II and Junior I. Age-appropriate character make-up is permitted."},
+      "L.9.2.1–L.9.2.2": {page:"12–13", quote:"Rule L.9.2.1 appears to permit ShowDance Stage footwear beyond the listed types; the immediately following Rule L.9.2.2 states that footwear outside the list is not permitted."},
+      "L.10.1": {page:"13", quote:"Minimum dance floor: 10 metres deep by 14 metres wide for Solo, Duo, Trio and Small Team; 12 metres deep by 18 metres wide for Big Team and Mega Team."},
+      "L.10.1.1–L.10.1.2": {page:"13–14", quote:"A high-quality dance floor covering or suitable sports floor shall be used and must not be slippery. Tap Dance requires maple, oak or an equivalent wooden surface suitable for producing sound."},
+      "L.10.2": {page:"14", quote:"Lighting shall cover the entire dance floor. Basic technical parameters may not be changed. At least 90% of the front light shall be white; additional effects may enhance the scene."},
+      "L.11.1": {page:"14", quote:"Open flame, flame effects, animals, and substances that may damage or soil the floor are prohibited. Electrical devices may be battery-powered only. The floor must remain clean and unchanged."},
+      "L.11.3": {page:"15", quote:"Scenery, props and lip sync are permitted in ShowDance Stage and shall support the theme and overall presentation."},
+      "L.11.4": {page:"15–16", quote:"Set-up and removal time: 20 seconds each for Solo, Duo and Trio; 30 seconds each for Small Team and Big Team; 5 minutes each for Mega Team."},
+      "L.11": {page:"14–16", quote:"The rules regulate scenery and props, prohibit hazardous or floor-damaging materials, and prescribe separate set-up and removal time limits."},
+      "L.12": {page:"16", quote:"Airborne and floor acrobatics are regulated by discipline. Gymnastic lines consisting of consecutive acrobatic elements across the floor are not allowed."},
+      "L.12、L.20": {page:"16, 25–26", quote:"In ShowDance Stage, airborne and floor acrobatics are permitted when naturally integrated into the choreography. Acrobatics do not increase the final score; poor execution may reduce the technical assessment. Gymnastic lines are prohibited."},
+      "L.13": {page:"16–17", quote:"A lift is an action in which an athlete has both feet off the floor with the support of another athlete. Lifts are not allowed in Preschool and Juvenile I."},
+      "L.13.2": {page:"17", quote:"The rule refers to Preschool when prohibiting lifts, although Preschool is not defined in the age-group tables in Rules L.5 and L.6."},
+      "L.14": {page:"17", quote:"In case of injury or unforeseen circumstances, a Team may replace a maximum of two athletes after informing the Chairperson. Substitution is not allowed in Solo, Duo or Trio."},
+      "L.15": {page:"18–19", quote:"Solo, Duo and Trio may use the floor during an announced warm-up. Small and Big Teams receive one minute without music. The rules also require a non-public full-floor rehearsal period of ten to fifteen minutes."},
+      "L.15.2–L.15.4": {page:"18–19", quote:"The text contains both a one-minute rehearsal without music and a ten-to-fifteen-minute non-public full-floor rehearsal, without fully clarifying how the two provisions interact."},
+      "L.16.1–L.16.4": {page:"19–20", quote:"World and Continental Championships require at least seven adjudicators from different countries. WDSF Open competitions require at least five, with no more than two from one country. Adjudicators must hold a valid Stage DanceSport licence."},
+      "L.16.5": {page:"20–21", quote:"Jazz Dance, Contemporary Dance and Tap Dance: Technique 10, Choreography and Music/Composition 10, Performance 10. ShowDance Stage adds Show 10, for a total of 40."},
+      "L.16.6–L.16.8": {page:"21–22", quote:"The rules refer to the Absolute Judging System or Skating System and contain a tie provision, but do not fully state the selection method or a complete priority order for resolving ties."},
+      "L.21": {page:"26–27", quote:"Jingle taps, double taps or double claques are not allowed. Recorded tap sounds and personal microphones attached to the legs are prohibited. Tap sounds and music must be clearly audible."},
+      "L.22": {page:"27", quote:"Athletes shall not wear competition numbers on costumes. The organiser shall announce them orally or display them on the main screen."},
+      "L.23.1": {page:"28", quote:"A minimum break of twenty minutes shall be provided between rounds; at World and Continental Championships, at least thirty minutes between the semi-final and final."},
+      "L.23.2": {page:"28", quote:"All Juvenile finals and award ceremonies shall finish by 20:00; Junior I by 21:00; Junior II by 22:00."},
+      "整體規程": {page:"1–30", quote:"WDSF Presidium Operating Policy on Rules for the Stage DanceSport Discipline. This query tool is based on the 30-page PDF supplied for this project."}
+    };
+
     const labels = {
       discipline: {all:"全部舞種", jazz:"爵士舞", contemporary:"當代舞", showdance:"舞臺展演舞", tap:"踢踏舞"},
       form: {all:"全部形式", solo:"單人", duo:"雙人", trio:"三人", small:"小團體", large:"大團體", mega:"超大型團體"},
@@ -415,11 +479,39 @@
     const empty = document.getElementById("empty");
     const count = document.getElementById("count");
     const activeFilters = document.getElementById("activeFilters");
+    const sourceViewer = document.getElementById("sourceViewer");
+    let selectedIndex = 0;
 
     function matchValue(selected, values) { return selected === "all" || values.includes(selected); }
     function escapeHtml(value) {
       return value.replace(/[&<>'"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c]));
     }
+    function renderSource(index) {
+      const e = entries[index];
+      if (!e) {
+        sourceViewer.innerHTML = `<h2>請選擇一筆規則</h2><p class="interpretation">左側查詢結果會顯示可對照的英文原文。</p>`;
+        return;
+      }
+      selectedIndex = index;
+      const source = sourceByRef[e.ref];
+      const interpretation = e.type === "issue"
+        ? "原文存在矛盾、缺漏或適用關係不清；本頁並列差異，不代替WDSF或裁判長的正式解釋。"
+        : e.type === "note"
+          ? "這是依英文規則提出的臺灣賽事執行建議，不是WDSF條文。"
+          : "中文內容為便於查詢的規則摘要譯解，並非WDSF發布的正式中文譯本。";
+      sourceViewer.innerHTML = `
+        <span class="tag tag-${e.type}">${typeLabel[e.type]}</span>
+        <h2>${escapeHtml(e.title)}</h2>
+        <div class="source-meta">Rule ${escapeHtml(e.ref)} ｜ PDF 第 ${escapeHtml(source.page)} 頁</div>
+        <h3>ENGLISH SOURCE · 英文原文節錄</h3>
+        <blockquote lang="en">${escapeHtml(source.quote)}</blockquote>
+        <h3>中文對照</h3>
+        <p class="zh-compare">${escapeHtml(e.text)}</p>
+        <h3>翻譯與判讀狀態</h3>
+        <p class="interpretation">${escapeHtml(interpretation)}</p>
+        <p class="source-foot">原文欄為與本筆查詢直接相關的節錄；正式報名、執法或申訴時，請回到所列PDF頁碼閱讀完整上下文。</p>`;
+    }
+
     function render() {
       const [discipline, form, age, topic] = controls.slice(0,4).map(c => c.value);
       const keyword = controls[4].value.trim().toLocaleLowerCase("zh-Hant-TW");
@@ -431,8 +523,10 @@
           && matchValue(topic, e.topics)
           && (!keyword || haystack.includes(keyword));
       });
-      results.innerHTML = filtered.map(e => `
-        <article class="result-card ${e.type}">
+      const indexed = filtered.map(e => ({e, index: entries.indexOf(e)}));
+      if (indexed.length && !indexed.some(item => item.index === selectedIndex)) selectedIndex = indexed[0].index;
+      results.innerHTML = indexed.map(({e, index}) => `
+        <article class="result-card ${e.type}${index === selectedIndex ? " selected" : ""}" data-entry-index="${index}">
           <div class="card-head">
             <div><span class="tag tag-${e.type}">${typeLabel[e.type]}</span><h3>${escapeHtml(e.title)}</h3></div>
             <span class="ref">Rule ${escapeHtml(e.ref)}</span>
@@ -441,6 +535,7 @@
           <div class="meta">
             ${e.topics.map(t => `<span>${labels.topic[t]}</span>`).join("")}
           </div>
+          <button class="view-source" type="button" data-entry-index="${index}" aria-label="查看${escapeHtml(e.title)}的英文原文">原文對照</button>
         </article>`).join("");
       count.textContent = `找到 ${filtered.length} 筆規則`;
       empty.style.display = filtered.length ? "none" : "block";
@@ -452,7 +547,16 @@
         keyword ? `關鍵字「${keyword}」` : ""
       ].filter(Boolean);
       activeFilters.textContent = active.length ? `目前條件：${active.join(" × ")}` : "顯示全部資料";
+      renderSource(indexed.length ? selectedIndex : -1);
     }
+    results.addEventListener("click", event => {
+      const button = event.target.closest(".view-source");
+      if (!button) return;
+      selectedIndex = Number(button.dataset.entryIndex);
+      results.querySelectorAll(".result-card").forEach(card => card.classList.toggle("selected", Number(card.dataset.entryIndex) === selectedIndex));
+      renderSource(selectedIndex);
+      if (window.matchMedia("(max-width: 850px)").matches) sourceViewer.scrollIntoView({behavior:"smooth", block:"start"});
+    });
     controls.forEach(control => control.addEventListener(control.tagName === "INPUT" ? "input" : "change", render));
     document.getElementById("reset").addEventListener("click", () => {
       controls.slice(0,4).forEach(c => c.value = "all");
